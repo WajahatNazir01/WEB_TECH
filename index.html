@@ -1,115 +1,161 @@
-<!doctype html>
- 
+<!DOCTYPE html>
 <html>
 <head>
- 
- <style>
-    body{
-        background-color: lightgray;
-        margin: 0;
-        font-family: Arial, Helvetica, sans-serif;
-    }
-    #container{
-        background-color: white;
-        width: 60%;
-        margin: 50px auto;
-        padding: 20px;
-    }
-    h1{
-        color: brown;
-    }
-    .userinput label{
-        color: #777;
-        width: 30%;
-        display: inline-block;
-        vertical-align: top;
-    }
-    .userinput{
-        margin-bottom: 30px;
-    }
-    .userinput input[type="text"],.userinput textarea,.userinput select{
-        padding: 7px 5px;
-        font-size: 14px;
-        color: brown;
-        width: 250px;
-        box-sizing: border-box;
-    }
-    .sampleBtn{
-        background-color: #f1f1f1;
-        width: 20%;
-        height: 35px;
-        font-size: 16px;
-        border: 1px solid #ccc;
-        cursor: pointer;
-        transition: 0.2s;
-     }
-
-    .sampleBtn:hover{
-        background-color: brown;
-        color: white;
-     }
- </style>
- 
+    <title>Saturn Hand Control - Final Fix</title>
+    <style>
+        body { margin: 0; background: #000; color: #0ff; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
+        /* This status box tells us exactly where it's failing */
+        #status-box { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); border: 1px solid #0ff; padding: 15px; z-index: 100; pointer-events: none; }
+        /* The camera preview - if this is black, your camera isn't working */
+        #video-preview { position: absolute; bottom: 20px; left: 20px; width: 280px; height: 210px; border: 2px solid #0ff; transform: scaleX(-1); border-radius: 8px; background: #111; z-index: 100; }
+        canvas { display: block; }
+    </style>
 </head>
- 
 <body>
-<div id="container">
- <h1> Student Registration Form </h1>
-  
- <form method="GET" action="register.jsp">
-  
-  <div class="userinput">
-   <label> First Name  </label> 
-   <input type="text" name="firstName" value="" /> 
-  </div>
-   
-  <div class="userinput">
-   <label> Last Name  </label> 
-   <input type="text" name="lastName" value="" />
-  </div>
-   
-  <div class="userinput">
-   <label> Email </label>   
-   <input type="text" name="email" value="" />
-  </div>
-   
-  <div class="userinput">
-   <label> Gender </label>
-   <input type="radio" name="gender" value="m"/> Male
-   <input type="radio" name="gender" value="f" /> Female    
-  </div>
-   
-  <div class="userinput">
-   <label> Choose Subjects </label>    
-   <input type="checkbox" name="subject" value="OOP"/> OOP 
-   <input type="checkbox" name="subject" value="DB" checked/> Database 
-   <input type="checkbox" name="subject" value="Web"/> Web Technologies 
-   <input type="checkbox" name="subject" value="Android"/> Android Dev. 
-  </div>
-   
-  <div class="userinput">
-   <label>Comments </label>
-   <textarea name="comments" rows="7" cols="40">Description comes here...</textarea> 
-  </div>
-   
-  <div class="userinput">
-   <label>City </label>
-   <select name="city">
-    <option value="1">Lahore</option>
-    <option value="2">Karachi</option>
-    <option value="3">Islamabad </option>
-   </select>
-  </div>
-   
-  <div style="text-align:center">
-   <input type="reset" class="sampleBtn"/>
-   <input type="submit" class="sampleBtn"/>   
-  </div>
-   
- </form>
-  
- </div>
-  
+
+<div id="status-box">
+    <div>SYSTEM STATUS: <span id="status-text">INITIALIZING...</span></div>
+    <div>HAND DETECTED: <span id="hand-text">NO</span></div>
+</div>
+<video id="input_video" style="display:none;"></video>
+<canvas id="video-preview"></canvas>
+
+<!-- 1. Load Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+
+    const statusText = document.getElementById('status-text');
+    const handText = document.getElementById('hand-text');
+    const videoElement = document.getElementById('input_video');
+    const debugCanvas = document.getElementById('video-preview');
+    const debugCtx = debugCanvas.getContext('2d');
+
+    // --- 1. THREE.JS SETTINGS ---
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Create Saturn
+    const saturnGroup = new THREE.Group();
+    scene.add(saturnGroup);
+
+    const planet = new THREE.Mesh(
+        new THREE.SphereGeometry(1.5, 32, 32),
+        new THREE.MeshStandardMaterial({ color: 0xffaa44, metalness: 0.2, roughness: 0.8 })
+    );
+    saturnGroup.add(planet);
+
+    // Create Particle Rings
+    const ringCount = 10000;
+    const ringGeo = new THREE.BufferGeometry();
+    const positions = new Float32Array(ringCount * 3);
+    for(let i=0; i<ringCount; i++) {
+        const r = 2.5 + Math.random() * 2;
+        const a = Math.random() * Math.PI * 2;
+        positions[i*3] = Math.cos(a) * r;
+        positions[i*3+1] = (Math.random() - 0.5) * 0.1;
+        positions[i*3+2] = Math.sin(a) * r;
+    }
+    ringGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const ringPoints = new THREE.Points(ringGeo, new THREE.PointsMaterial({ size: 0.02, color: 0xffffff, transparent: true, opacity: 0.6 }));
+    saturnGroup.add(ringPoints);
+
+    scene.add(new THREE.AmbientLight(0x404040));
+    const sun = new THREE.DirectionalLight(0xffffff, 2);
+    sun.position.set(5, 5, 5);
+    scene.add(sun);
+    camera.position.set(0, 4, 8);
+    camera.lookAt(0,0,0);
+
+    // --- 2. HAND TRACKING SETUP ---
+    let targetX = 0, targetY = 0, isDetected = false;
+
+    // Use the globally loaded 'Hands' class
+    const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+    });
+
+    hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.6,
+        minTrackingConfidence: 0.6
+    });
+
+    hands.onResults((results) => {
+        // Clear and draw preview so you can see your hand
+        debugCtx.save();
+        debugCtx.clearRect(0, 0, debugCanvas.width, debugCanvas.height);
+        debugCtx.drawImage(results.image, 0, 0, debugCanvas.width, debugCanvas.height);
+        
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            isDetected = true;
+            handText.innerText = "YES";
+            handText.style.color = "#0f0";
+            
+            // Track Index Finger Tip
+            const indexTip = results.multiHandLandmarks[0][8];
+            targetX = (indexTip.x - 0.5) * 10;
+            targetY = -(indexTip.y - 0.5) * 8;
+        } else {
+            isDetected = false;
+            handText.innerText = "NO";
+            handText.style.color = "red";
+        }
+        debugCtx.restore();
+    });
+
+    // Start Camera
+    const cam = new Camera(videoElement, {
+        onFrame: async () => { await hands.send({image: videoElement}); },
+        width: 640, height: 480
+    });
+
+    cam.start().then(() => {
+        statusText.innerText = "CAMERA ACTIVE";
+    }).catch(e => {
+        statusText.innerText = "CAMERA ERROR: " + e;
+    });
+
+    // --- 3. ANIMATION LOOP ---
+    function animate() {
+        requestAnimationFrame(animate);
+
+        if(isDetected) {
+            // Saturn tilts toward your hand
+            saturnGroup.rotation.z += (targetX * 0.1 - saturnGroup.rotation.z) * 0.1;
+            saturnGroup.rotation.x += (targetY * 0.1 - saturnGroup.rotation.x) * 0.1;
+            
+            // Magnet effect on particles
+            const pos = ringGeo.attributes.position.array;
+            for(let i=0; i<ringCount; i++) {
+                pos[i*3] += (targetX - pos[i*3]) * 0.01;
+                pos[i*3+1] += (targetY - pos[i*3+1]) * 0.01;
+            }
+            ringGeo.attributes.position.needsUpdate = true;
+        } else {
+            // Idle rotation
+            saturnGroup.rotation.y += 0.005;
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+</script>
 </body>
- 
 </html>
