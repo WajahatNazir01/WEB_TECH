@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Advanced Nebula Swarm</title>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+        #ui { position: absolute; top: 30px; left: 30px; color: #fff; pointer-events: none; z-index: 10; }
+        .glow { color: #00ffff; text-shadow: 0 0 20px #00ffff; font-weight: bold; letter-spacing: 2px; }
+        #video-preview { position: absolute; bottom: 20px; right: 20px; width: 220px; border: 1px solid #333; 
+                         transform: scaleX(-1); border-radius: 12px; opacity: 0.3; background: #111; }
+        #status-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: red; margin-right: 8px; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div style="font-size: 24px;"><span id="status-indicator"></span>NEBULA <span class="glow">VORTEX</span></div>
+    <div id="status-text" style="font-size: 12px; opacity: 0.6; margin-top: 5px;">SYNCING SENSORS...</div>
+</div>
+
+<video id="input_video" style="display:none;"></video>
+<canvas id="video-preview"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+
+<script type="module">
+    import * as THREE from 'three';
+
+    // --- CONFIGURATION ---
+    const PARTICLE_COUNT = 15000; // Balanced for performance and look
+    const DAMPING = 0.95;
+    const SMOOTHING = 0.15; // Controls how "heavy" the hand control feels (lower = smoother)
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    // --- BETTER VISUALS: GLOW TEXTURE ---
+    function createGlowTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64; canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(0.2, 'rgba(0, 255, 255, 0.8)');
+        gradient.addColorStop(0.5, 'rgba(0, 50, 100, 0.2)');
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 64, 64);
+        return new THREE.CanvasTexture(canvas);
+    }
+
+    // --- PARTICLE SYSTEM ---
+    const geometry = new THREE.BufferGeometry();
+    const posArray = new Float32Array(PARTICLE_COUNT * 3);
+    const velArray = new Float32Array(PARTICLE_COUNT * 3);
+    const colorArray = new Float32Array(PARTICLE_COUNT * 3);
+
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const i3 = i * 3;
+        posArray[i3] = (Math.random() - 0.5) * 20;
+        posArray[i3+1] = (Math.random() - 0.5) * 20;
+        posArray[i3+2] = (Math.random() - 0.5) * 20;
+
+        // Visual design: Blend from Cyan to Magenta
+        const col = new THREE.Color().setHSL(0.5 + Math.random() * 0.2, 1, 0.5);
+        colorArray[i3] = col.r;
+        colorArray[i3+1] = col.g;
+        colorArray[i3+2] = col.b;
+    }
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+
+    const material = new THREE.PointsMaterial({
+        size: 0.18,
+        map: createGlowTexture(),
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        vertexColors: true,
+        sizeAttenuation: true
+    });
+
+    const swarm = new THREE.Points(geometry, material);
+    scene.add(swarm);
+    camera.position.z = 15;
+
+    // --- HAND TRACKING WITH SMOOTHING ---
+    let rawX = 0, rawY = 0, rawZ = 0;
+    let smoothX = 0, smoothY = 0, smoothZ = 0;
+    let isActive = false;
+
+    const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+    hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.6 });
+
+    hands.onResults((results) => {
+        debugCtx.save();
+        debugCtx.clearRect(0, 0, debugCanvas.width, debugCanvas.height);
+        debugCtx.drawImage(results.image, 0, 0, debugCanvas.width, debugCanvas.height);
+        
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            isActive = true;
+            document.getElementById('status-indicator').style.background = '#0f0';
+            document.getElementById('status-text').innerText = "BIOMETRIC LINK STABLE";
+            
+            const palm = results.multiHandLandmarks[0][9]; // Middle of palm
+            rawX = (palm.x - 0.5) * 22;
+            rawY = -(palm.y - 0.5) * 16;
+            rawZ = palm.z * 25;
+        } else {
+            isActive = false;
+            document.getElementById('status-indicator').style.background = 'red';
+            document.getElementById('status-text').innerText = "SEARCHING FOR ORGANIC SIGNATURE...";
+        }
+        debugCtx.restore();
+    });
+
+    const cam = new Camera(document.getElementById('input_video'), {
+        onFrame: async () => { await hands.send({image: document.getElementById('input_video')}); },
+        width: 640, height: 480
+    });
+    cam.start();
+    const debugCanvas = document.getElementById('video-preview');
+    const debugCtx = debugCanvas.getContext('2d');
+
+    // --- ANIMATION & PHYSICS ---
+    function animate() {
+        requestAnimationFrame(animate);
+
+        // Controllability: Smooth the hand movement (Lerp)
+        smoothX += (rawX - smoothX) * SMOOTHING;
+        smoothY += (rawY - smoothY) * SMOOTHING;
+        smoothZ += (rawZ - smoothZ) * SMOOTHING;
+
+        const pos = geometry.attributes.position.array;
+        const time = Date.now() * 0.001;
+
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            const i3 = i * 3;
+            let x = pos[i3], y = pos[i3+1], z = pos[i3+2];
+            let vx = velArray[i3], vy = velArray[i3+1], vz = velArray[i3+2];
+
+            if (isActive) {
+                const dx = smoothX - x;
+                const dy = smoothY - y;
+                const dz = smoothZ - z;
+                const distSq = dx*dx + dy*dy + dz*dz;
+                const dist = Math.sqrt(distSq) + 0.1;
+
+                // Physics logic: Attraction
+                const force = Math.min(1.5, 10 / (distSq + 1.0));
+                vx += (dx / dist) * force * 0.15;
+                vy += (dy / dist) * force * 0.15;
+                vz += (dz / dist) * force * 0.15;
+
+                // Physics logic: Vortex Spin
+                vx += (dy / dist) * 0.08;
+                vy -= (dx / dist) * 0.08;
+            } else {
+                // Natural idle drift
+                vx += Math.sin(time + x * 0.1) * 0.002;
+                vy += Math.cos(time + y * 0.1) * 0.002;
+            }
+
+            // Damping (Friction)
+            vx *= DAMPING; vy *= DAMPING; vz *= DAMPING;
+
+            // Apply movement
+            pos[i3] += vx; pos[i3+1] += vy; pos[i3+2] += vz;
+
+            // Store velocities for next frame
+            velArray[i3] = vx; velArray[i3+1] = vy; velArray[i3+2] = vz;
+        }
+
+        geometry.attributes.position.needsUpdate = true;
+        
+        // Subtle Camera 3D movement
+        camera.position.x += (smoothX * 0.2 - camera.position.x) * 0.05;
+        camera.position.y += (smoothY * 0.2 + 4 - camera.position.y) * 0.05;
+        camera.lookAt(0, 0, 0);
+
+        renderer.render(scene, camera);
+    }
+
+    animate();
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+</script>
+</body>
+</html>
