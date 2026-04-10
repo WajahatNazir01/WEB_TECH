@@ -1,161 +1,364 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>Saturn Hand Control - Final Fix</title>
-    <style>
-        body { margin: 0; background: #000; color: #0ff; font-family: 'Courier New', Courier, monospace; overflow: hidden; }
-        /* This status box tells us exactly where it's failing */
-        #status-box { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.8); border: 1px solid #0ff; padding: 15px; z-index: 100; pointer-events: none; }
-        /* The camera preview - if this is black, your camera isn't working */
-        #video-preview { position: absolute; bottom: 20px; left: 20px; width: 280px; height: 210px; border: 2px solid #0ff; transform: scaleX(-1); border-radius: 8px; background: #111; z-index: 100; }
-        canvas { display: block; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
 </head>
+<script>
+    function eventhandler() {
+        let number = document.getElementById("number")
+        alert(`The square root of number is ${number.value * number.value}`)
+    }
+    function basiccalculator() {
+        let num1 = Number(document.getElementById("first").value)
+        let num2 = Number(document.getElementById("second").value)
+        let result
+        if (document.getElementById("add").checked) {
+            result = num1 + num2
+        }
+        else if (document.getElementById("subtract").checked) {
+            result = num1 - num2
+        }
+        else if (document.getElementById("multiply").checked) {
+            result = num1 * num2
+        }
+        else if (document.getElementById("divide").checked) {
+            result = num1 / num2
+        }
+        alert(`the result is ${result}`)
+    }
+    function task3() {
+        let link = document.getElementById("link")
+        let box = document.getElementById("table")
+        box.innerHTML = `
+        <table>
+            <thead>
+            <tr><th>Property</th><th>value</th></tr>
+            </thead>
+            <tbody>
+            <tr><td>href</td><td>${link.href}</td></tr>
+            <tr><td>title</td><td>${link.title}</td></tr>
+            <tr><td>target</td><td>${link.target}</td></tr>
+            <tr><td>rel</td><td>${link.rel}</td></tr>
+            </tbody>
+        </table> `
+
+    }
+
+    function task4remove() {
+        //remove kr dena selected ko or agr ni hy to uske samne error de dena
+        let cities = document.getElementById("task4")
+        let errordis = document.getElementById("msgdisplay");
+        if (cities.selectedIndex <= 0) {
+            errordis.innerText = "no city selected"
+            return
+        }
+        cities.remove(cities.selectedIndex);
+        errordis.innerText = "removed"
+
+    }
+    function task5() {
+        let para = document.getElementById("data")
+        let error = document.getElementById("display")
+        let property = document.getElementById("prop").value
+        let valueofprop = document.getElementById("val").value
+        if (property != null && valueofprop != null) {
+            para.style = `${property}:${valueofprop}`
+            error.innerText = "property applied"
+        }
+        else {
+            error.innerText = "some error in your"
+        }
+    }
+
+    function task6() {
+        let selectedelem = document.getElementById("gs")
+        let selectedvalue = selectedelem.value
+        let maleradio = document.getElementById("m")
+        let femaleradio = document.getElementById("f")
+        maleradio.checked = false
+        femaleradio.checked = false
+        if (selectedvalue == "male") {
+            maleradio.checked = true
+        }
+        else if (selectedvalue == "female") {
+            femaleradio.checked = true
+        }
+
+    }
+
+</script>
+
 <body>
+    <!-- task1 -->
+    <input type="number" placeholder="enter a number" id="number">
+    </input>
+    <br>
+    <button onclick="eventhandler()">
+        Square
+    </button>
 
-<div id="status-box">
-    <div>SYSTEM STATUS: <span id="status-text">INITIALIZING...</span></div>
-    <div>HAND DETECTED: <span id="hand-text">NO</span></div>
-</div>
-<video id="input_video" style="display:none;"></video>
-<canvas id="video-preview"></canvas>
+    <!-- task2 -->
+    <!-- 2 input field 4 radio button or ak calculate button -->
+    <br><br>
+    <input type="number" placeholder="enter first number" id="first">
+    <input type="number" placeholder="enter second number" id="second">
+    <br>
+    <input type="radio" name="operator" value="+" id="add">+
+    <input type="radio" name="operator" value="-" id="subtract">-
+    <input type="radio" name="operator" value="x" id="multiply">x
+    <input type="radio" name="operator" value="/" id="divide">%
+    <br>
+    <button onclick="basiccalculator()">Calculate</button>
+    <br><br>
+    <!-- task3 -->
+    <a style="background-color: cadetblue;" id="link" href="https://www.googleee.com" title="google" target="_blank"
+        rel="abcc" onclick="task3()">google props</a>
+    <div id="table"></div>
 
-<!-- 1. Load Libraries -->
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-<script type="importmap">
-    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
-</script>
 
-<script type="module">
-    import * as THREE from 'three';
+    <!-- Create an option list using <select> and <option> tags. It shall contains 4-5 cities. After the option list, add a Remove button, when the button is clicked, remove the selected option from the list. If no option is selected, show error message on right side of the button "City must be selected to remove." -->
 
-    const statusText = document.getElementById('status-text');
-    const handText = document.getElementById('hand-text');
-    const videoElement = document.getElementById('input_video');
-    const debugCanvas = document.getElementById('video-preview');
-    const debugCtx = debugCanvas.getContext('2d');
+    <select name="selector" id="task4">
+        <option value="" selected disabled hidden>select city</option>
+        <option value="karachi">karachi</option>
+        <option value="lahore">lahore</option>
+        <option value="jhang">jhang</option>
+        <option value="sargodha">sargodha</option>
+        <option value="peshawar">peshawar</option>
+    </select>
+    <br>
+    <button onclick="task4remove()">remove</button>
+    <span id="msgdisplay"></span>
+    <br><br>
 
-    // --- 1. THREE.JS SETTINGS ---
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+    <!-- Write sample text using p tag. After the paragraph, add two text input fields to get CSS property name and value and an "Apply" button. When the button is clicked, apply the given CSS property with given value to the paragraph. -->
+    <p id="data">hello there i am doing basic javascript tags</p>
+    <input type="text" id="prop" placeholder="enter css property">
+    <input type="text" id="val" placeholder="enter value ">
+    <button onclick="task5()">Apply changes</button>
+    <span id="display"></span>
+    <br><br>
 
-    // Create Saturn
-    const saturnGroup = new THREE.Group();
-    scene.add(saturnGroup);
+    <!-- Task 6
+Make two radio buttons for gender with label Male and Female. Make a dropdown list with same  values as "options". When user select a list item and click the "Apply" button, corresponding radio button should be selected. -->
+    <label for="male">male </label>
+    <input type="radio" name="male" id="m" value="male">
+    <br>
+    <label for="female">female </label>
+    <input type="radio" name="female" id="f" value="female">
+    <br>
+    <select name="genderselection" id="gs">
+        <option value="" hidden disabled selected> select gender</option>
+        <option value="male" class="gen">male</option>
+        <option value="female" class="gen">female</option>
+    </select>
+    <button id="selectorbtn" onclick="task6()">apply gender changes</button>
+    <br><br>
 
-    const planet = new THREE.Mesh(
-        new THREE.SphereGeometry(1.5, 32, 32),
-        new THREE.MeshStandardMaterial({ color: 0xffaa44, metalness: 0.2, roughness: 0.8 })
-    );
-    saturnGroup.add(planet);
 
-    // Create Particle Rings
-    const ringCount = 10000;
-    const ringGeo = new THREE.BufferGeometry();
-    const positions = new Float32Array(ringCount * 3);
-    for(let i=0; i<ringCount; i++) {
-        const r = 2.5 + Math.random() * 2;
-        const a = Math.random() * Math.PI * 2;
-        positions[i*3] = Math.cos(a) * r;
-        positions[i*3+1] = (Math.random() - 0.5) * 0.1;
-        positions[i*3+2] = Math.sin(a) * r;
-    }
-    ringGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    const ringPoints = new THREE.Points(ringGeo, new THREE.PointsMaterial({ size: 0.02, color: 0xffffff, transparent: true, opacity: 0.6 }));
-    saturnGroup.add(ringPoints);
+    <!-- task7 -->
+    <select name="cityselector" id="citys">
 
-    scene.add(new THREE.AmbientLight(0x404040));
-    const sun = new THREE.DirectionalLight(0xffffff, 2);
-    sun.position.set(5, 5, 5);
-    scene.add(sun);
-    camera.position.set(0, 4, 8);
-    camera.lookAt(0,0,0);
+        <option value="Karachi">Karachi</option>
+        <option value="Karachi">Lahore</option>
+        <option value="Karachi">peshawar</option>
+    </select>
+    <input type="text" name="added" id="addcity" placeholder="enter new city">
+    <button id="btntoadd" onclick="task7()">Add city</button>
+    <span id="errordisplay"></span>
 
-    // --- 2. HAND TRACKING SETUP ---
-    let targetX = 0, targetY = 0, isDetected = false;
-
-    // Use the globally loaded 'Hands' class
-    const hands = new Hands({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-    });
-
-    hands.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 1,
-        minDetectionConfidence: 0.6,
-        minTrackingConfidence: 0.6
-    });
-
-    hands.onResults((results) => {
-        // Clear and draw preview so you can see your hand
-        debugCtx.save();
-        debugCtx.clearRect(0, 0, debugCanvas.width, debugCanvas.height);
-        debugCtx.drawImage(results.image, 0, 0, debugCanvas.width, debugCanvas.height);
-        
-        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-            isDetected = true;
-            handText.innerText = "YES";
-            handText.style.color = "#0f0";
-            
-            // Track Index Finger Tip
-            const indexTip = results.multiHandLandmarks[0][8];
-            targetX = (indexTip.x - 0.5) * 10;
-            targetY = -(indexTip.y - 0.5) * 8;
-        } else {
-            isDetected = false;
-            handText.innerText = "NO";
-            handText.style.color = "red";
-        }
-        debugCtx.restore();
-    });
-
-    // Start Camera
-    const cam = new Camera(videoElement, {
-        onFrame: async () => { await hands.send({image: videoElement}); },
-        width: 640, height: 480
-    });
-
-    cam.start().then(() => {
-        statusText.innerText = "CAMERA ACTIVE";
-    }).catch(e => {
-        statusText.innerText = "CAMERA ERROR: " + e;
-    });
-
-    // --- 3. ANIMATION LOOP ---
-    function animate() {
-        requestAnimationFrame(animate);
-
-        if(isDetected) {
-            // Saturn tilts toward your hand
-            saturnGroup.rotation.z += (targetX * 0.1 - saturnGroup.rotation.z) * 0.1;
-            saturnGroup.rotation.x += (targetY * 0.1 - saturnGroup.rotation.x) * 0.1;
-            
-            // Magnet effect on particles
-            const pos = ringGeo.attributes.position.array;
-            for(let i=0; i<ringCount; i++) {
-                pos[i*3] += (targetX - pos[i*3]) * 0.01;
-                pos[i*3+1] += (targetY - pos[i*3+1]) * 0.01;
+    <script>
+        function task7() {
+            let cityname = document.getElementById("addcity").value
+            let citiesoptions = document.getElementById("citys")
+            let counter = 0
+            for (let i = 0; i < citiesoptions.length; i++) {
+                if (citiesoptions[i].value != cityname) {
+                    counter++
+                }
             }
-            ringGeo.attributes.position.needsUpdate = true;
-        } else {
-            // Idle rotation
-            saturnGroup.rotation.y += 0.005;
+            if (counter == citiesoptions.length) {
+                citiesoptions.innerHTML += `
+                        <option name="${cityname}">${cityname}</option>
+                         `
+            }
+            else {
+                let err = document.getElementById("errordisplay").innerText = "already exists"
+            }
+
+        }
+    </script>
+    <!-- task8 -->
+    <!-- Use div element to display a counter value. Add two button with labels: Increment and Decrement. Define event handlers for both buttons to increment and decrement the value written in div element. Restrict the value shall not get -ve. Show error message appropriatel"y when Decrement button is clicked that intent to make the value negative.  -->
+    <div>
+        <div id="mainvalue" style="background-color: blue; width: 200px; color:white; text-align:center;">
+            <h1 id="countValue">0</h1>
+        </div>
+
+        <!-- Buttons -->
+        <div>
+            <button onclick="increasevalue()">INCREASE</button>
+            <button onclick="decreasevalue()">DECREASE</button>
+        </div>
+
+        <!-- Message -->
+        <div id="message" style="color:red;"></div>
+    </div>
+
+    <script>
+        let count = 0;
+
+        function updateUI() {
+            document.getElementById("countValue").innerText = count;
         }
 
-        renderer.render(scene, camera);
-    }
+        function increasevalue() {
+            count++;
+            document.getElementById("message").innerText = ""; // clear error
+            updateUI();
+        }
 
-    animate();
+        function decreasevalue() {
+            if (count <= 0) {
+                document.getElementById("message").innerText = "Can't go below zero!";
+            } else {
+                count--;
+                document.getElementById("message").innerText = "";
+            }
+            updateUI();
+        }
+    </script>
 
-    window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    });
-</script>
+    <!-- task9 -->
+    <!-- For a paragraph, change its background color when mouse enter and leave the paragraph. -->
+    <div>
+        <p id="p1" onmouseenter="changercolor()" onmouseleave="reset()">Lorem ipsum dolor sit amet consectetur
+            adipisicing elit. Quia minus porro modi at nihil magni sint ipsa asperiores, repellat voluptatem, assumenda
+            fugiat doloribus quae, vero doloremque error omnis autem qui amet! Quia, debitis? Pariatur incidunt quae
+            quos error assumenda rerum iure voluptas, dolor optio, minus officiis dolorum aperiam, iusto enim?</p>
+    </div>
+    <script>
+        function changercolor() {
+            document.getElementById("p1").style.backgroundColor = "pink";
+        }
+        function reset() {
+            document.getElementById("p1").style.backgroundColor = "white";
+        }
+    </script>
+
+    <!-- task10 -->
+
+    <input type="text" id="input1" placeholder="First input">
+    <br><br>
+    <input type="text" id="input2" placeholder="Second input">
+
+    <script>
+        let inp1 = document.getElementById("input1");
+        let inp2 = document.getElementById("input2");
+
+        function addEvents(input) {
+            input.addEventListener("focus", function () {
+                input.style.backgroundColor = "lightgreen";
+            });
+
+            input.addEventListener("blur", function () {
+                input.style.backgroundColor = "white";
+            });
+        }
+
+        addEvents(inp1);
+        addEvents(inp2);
+    </script>
+
+    <!-- task11 -->
+    <h2>To-Do List</h2>
+
+    <input type="text" id="taskInput" placeholder="Enter task">
+    <button onclick="addTask()">Add</button>
+    <button onclick="clearAll()">Clear All</button>
+
+    <ol id="taskList"></ol>
+
+    <script>
+        let taskList = document.getElementById("taskList");
+
+        // Load tasks from local storage
+        window.onload = function () {
+            let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+            tasks.forEach(task => createTaskElement(task.text, task.done));
+        };
+
+        function saveTasks() {
+            let tasks = [];
+            document.querySelectorAll("#taskList li").forEach(li => {
+                tasks.push({
+                    text: li.childNodes[0].nodeValue.trim(),
+                    done: li.classList.contains("done")
+                });
+            });
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+        }
+
+        function addTask() {
+            let input = document.getElementById("taskInput");
+            let text = input.value.trim();
+
+            if (text === "") {
+                alert("Please enter a task");
+                return;
+            }
+
+            createTaskElement(text, false);
+            input.value = "";
+            saveTasks();
+        }
+
+        function createTaskElement(text, isDone) {
+            let li = document.createElement("li");
+            li.innerText = text;
+
+            if (isDone) li.classList.add("done");
+
+            // DONE BUTTON
+            let doneBtn = document.createElement("button");
+            doneBtn.innerText = "Done";
+            doneBtn.onclick = function () {
+                li.classList.toggle("done");
+                taskList.appendChild(li); // move to end
+                saveTasks();
+            };
+
+            // DELETE BUTTON
+            let delBtn = document.createElement("button");
+            delBtn.innerText = "Delete";
+            delBtn.onclick = function () {
+                li.remove();
+                saveTasks();
+            };
+
+            li.appendChild(doneBtn);
+            li.appendChild(delBtn);
+
+            taskList.appendChild(li);
+        }
+
+        function clearAll() {
+            taskList.innerHTML = "";
+            localStorage.removeItem("tasks");
+        }
+
+        // Enter key support
+        document.getElementById("taskInput").addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+                addTask();
+            }
+        });
+    </script>
+
+
 </body>
+
 </html>
