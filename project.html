@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Persons Manager</title>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  .container { display: flex; gap: 60px; align-items: flex-start; }
+
+  h3 { margin-bottom: 10px; }
+
+  table { border-collapse: collapse; min-width: 420px; }
+  th, td { padding: 8px 14px; text-align: left; border: 1px solid #ccc; }
+  th { background: #d0d0d0; }
+  tr:nth-child(even) td { background: #f2f2f2; }
+  a { cursor: pointer; color: #000; text-decoration: none; margin-right: 4px; }
+  a:hover { text-decoration: underline; }
+
+  .form-box { border: 1px solid #ccc; padding: 20px 24px; background: #f9f9f9; min-width: 280px; }
+  .form-row { margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
+  .form-row label { width: 60px; }
+  .form-row input[type="text"],
+  .form-row input[type="number"],
+  .form-row select { padding: 3px 6px; width: 180px; box-sizing: border-box; }
+  .form-row select { width: 188px; }
+  .buttons { margin-top: 18px; display: flex; gap: 8px; }
+  button { padding: 4px 14px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Table -->
+  <div>
+    <h3>List of Persons</h3>
+    <table id="personTable">
+      <thead>
+        <tr><th>Name</th><th>Gender</th><th>Age</th><th>City</th><th>Action</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Form -->
+  <div>
+    <h3>Add / Update Person Form</h3>
+    <div class="form-box">
+      <div class="form-row">
+        <label>Name :</label>
+        <input type="text" id="name">
+      </div>
+      <div class="form-row">
+        <label>Gender :</label>
+        <label><input type="radio" name="gender" value="Male" checked> Male</label>
+        <label><input type="radio" name="gender" value="Female"> Female</label>
+      </div>
+      <div class="form-row">
+        <label>Age :</label>
+        <input type="number" id="age" min="1">
+      </div>
+      <div class="form-row">
+        <label>City :</label>
+        <select id="city">
+          <option>Lahore</option>
+          <option>Islamabad</option>
+          <option>Karachi</option>
+          <option>Peshawar</option>
+          <option>Quetta</option>
+        </select>
+      </div>
+      <div class="buttons">
+        <button id="btnReset">reset</button>
+        <button id="btnAdd">add</button>
+        <button id="btnUpdate" disabled>update</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let editingRow = null;
+
+  function getForm() {
+    return {
+      name:   $('#name').val().trim(),
+      gender: $('input[name="gender"]:checked').val(),
+      age:    $('#age').val().trim(),
+      city:   $('#city').val()
+    };
+  }
+
+  function buildRow(data) {
+    return $('<tr>').append(
+      $('<td>').text(data.name),
+      $('<td>').text(data.gender),
+      $('<td>').text(data.age),
+      $('<td>').text(data.city),
+      $('<td>').append(
+        $('<a>').text('Update').on('click', onUpdate),
+        ' / ',
+        $('<a>').text('Remove').on('click', onRemove)
+      )
+    );
+  }
+
+  function resetForm() {
+    $('#name').val('');
+    $('input[name="gender"][value="Male"]').prop('checked', true);
+    $('#age').val('');
+    $('#city').val('Lahore');
+    editingRow = null;
+    $('#btnAdd').prop('disabled', false);
+    $('#btnUpdate').prop('disabled', true);
+  }
+
+  $('#btnAdd').on('click', function () {
+    const d = getForm();
+    if (!d.name || !d.age) return alert('Please fill Name and Age.');
+    $('#personTable tbody').append(buildRow(d));
+    resetForm();
+  });
+
+  $('#btnUpdate').on('click', function () {
+    const d = getForm();
+    if (!d.name || !d.age) return alert('Please fill Name and Age.');
+    editingRow.find('td').eq(0).text(d.name);
+    editingRow.find('td').eq(1).text(d.gender);
+    editingRow.find('td').eq(2).text(d.age);
+    editingRow.find('td').eq(3).text(d.city);
+    resetForm();
+  });
+
+  $('#btnReset').on('click', resetForm);
+
+  function onUpdate() {
+    editingRow = $(this).closest('tr');
+    $('#name').val(editingRow.find('td').eq(0).text());
+    $('input[name="gender"][value="' + editingRow.find('td').eq(1).text() + '"]').prop('checked', true);
+    $('#age').val(editingRow.find('td').eq(2).text());
+    $('#city').val(editingRow.find('td').eq(3).text());
+    $('#btnAdd').prop('disabled', true);
+    $('#btnUpdate').prop('disabled', false);
+  }
+
+  function onRemove() {
+    $(this).closest('tr').remove();
+    if (editingRow && editingRow.closest('body').length === 0) resetForm();
+  }
+</script>
+</body>
+</html>
